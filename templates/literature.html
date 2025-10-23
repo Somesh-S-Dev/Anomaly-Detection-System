@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Literature Review - Financial Anomaly Detection{% endblock %}
+{% block page_title %}Literature Review{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-book"></i> Fraud Detection Techniques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for technique in literature.fraud_detection_techniques %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">{{ technique.technique }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ technique.description }}</p>
+                                
+                                <h6>Pros:</h6>
+                                <ul class="list-unstyled">
+                                    {% for pro in technique.pros %}
+                                    <li><i class="fas fa-check text-success"></i> {{ pro }}</li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                <h6>Cons:</h6>
+                                <ul class="list-unstyled">
+                                    {% for con in technique.cons %}
+                                    <li><i class="fas fa-times text-danger"></i> {{ con }}</li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                <h6>Applications:</h6>
+                                <ul class="list-unstyled">
+                                    {% for app in technique.applications %}
+                                    <li><i class="fas fa-arrow-right text-primary"></i> {{ app }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Financial Fraud Types
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for fraud_type in literature.financial_fraud_types %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">{{ fraud_type.type }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ fraud_type.description }}</p>
+                                
+                                <h6>Detection Methods:</h6>
+                                <ul class="list-unstyled">
+                                    {% for method in fraud_type.detection_methods %}
+                                    <li><i class="fas fa-search text-info"></i> {{ method }}</li>
+                                    {% endfor %}
+                                </ul>
+                                
+                                <h6>Prevention:</h6>
+                                <ul class="list-unstyled">
+                                    {% for prevention in fraud_type.prevention %}
+                                    <li><i class="fas fa-shield-alt text-success"></i> {{ prevention }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Evaluation Metrics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Description</th>
+                                <th>Importance</th>
+                                <th>Formula</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for metric in literature.evaluation_metrics %}
+                            <tr>
+                                <td><strong>{{ metric.metric }}</strong></td>
+                                <td>{{ metric.description }}</td>
+                                <td>{{ metric.importance }}</td>
+                                <td><code>{{ metric.formula }}</code></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-graduation-cap"></i> Recent Research
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for research in literature.recent_research %}
+                <div class="mb-3">
+                    <h6>{{ research.title }} ({{ research.year }})</h6>
+                    <p class="text-muted">{{ research.authors }}</p>
+                    <p><strong>Key Findings:</strong> {{ research.key_findings }}</p>
+                    <p><strong>Methodology:</strong> {{ research.methodology }}</p>
+                    <p><strong>Dataset:</strong> {{ research.dataset }}</p>
+                </div>
+                {% if not loop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Technique Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="techniqueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('techniqueChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Accuracy', 'Speed', 'Interpretability', 'Scalability'],
+            datasets: [
+                {
+                    label: 'Statistical Methods',
+                    data: [0.7, 0.9, 0.9, 0.8],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#667eea'
+                },
+                {
+                    label: 'Machine Learning',
+                    data: [0.85, 0.7, 0.6, 0.7],
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                    pointBackgroundColor: '#764ba2',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#764ba2'
+                },
+                {
+                    label: 'Deep Learning',
+                    data: [0.95, 0.5, 0.3, 0.6],
+                    borderColor: '#f093fb',
+                    backgroundColor: 'rgba(240, 147, 251, 0.2)',
+                    pointBackgroundColor: '#f093fb',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#f093fb'
+                },
+                {
+                    label: 'Ensemble Methods',
+                    data: [0.92, 0.6, 0.5, 0.5],
+                    borderColor: '#4facfe',
+                    backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                    pointBackgroundColor: '#4facfe',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#4facfe'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

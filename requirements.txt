@@ -1,0 +1,15 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+torch
+torchvision
+torchaudio
+shap
+imbalanced-learn
+joblib
+streamlit
+flask
+plotly
+werkzeug 

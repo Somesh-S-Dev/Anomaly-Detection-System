@@ -1,0 +1,965 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Financial Anomaly Detection{% endblock %}
+{% block page_title %}Dashboard & Model Comparison{% endblock %}
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="v3.0-accuracy-fix">
+
+{% block page_actions %}
+<button class="btn btn-primary me-2" onclick="runModels()">
+    <i class="fas fa-play"></i> Run Models
+</button>  
+<button class="btn btn-success me-2" onclick="tuneHyperparameters()">
+    <i class="fas fa-cogs"></i> Tune Hyperparameters
+</button>  
+<button class="btn btn-secondary me-2" onclick="clearResults()">
+    <i class="fas fa-trash"></i> Clear Results
+</button>
+<button class="btn btn-warning" onclick="forceRefresh()">
+    <i class="fas fa-sync-alt"></i> Force Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Loading Indicator -->
+<div class="loading">
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    <p class="text-center mt-2">Running anomaly detection models...</p>
+</div>
+
+<!-- Model Status Cards -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks"></i> Model Training Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chart-line fa-2x mb-2 text-primary"></i>
+                                <h6 class="card-title">Isolation Forest</h6>
+                                <p class="card-text small" id="iso-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-network-wired fa-2x mb-2 text-success"></i>
+                                <h6 class="card-title">One-Class SVM</h6>
+                                <p class="card-text small" id="svm-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-brain fa-2x mb-2 text-info"></i>
+                                <h6 class="card-title">Autoencoder</h6>
+                                <p class="card-text small" id="auto-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-brain fa-2x mb-2 text-warning"></i>
+                                <h6 class="card-title">Deep Autoencoder</h6>
+                                <p class="card-text small" id="deep-auto-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fab fa-xing fa-2x mb-2 text-danger"></i>
+                                <h6 class="card-title">XGBoost</h6>
+                                <p class="card-text small" id="xgb-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 col-lg-2 mb-3">
+                        <div class="card metric-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tree fa-2x mb-2 text-secondary"></i>
+                                <h6 class="card-title">Random Forest</h6>
+                                <p class="card-text small" id="rf-status">Not Run</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Model Indicator -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-trophy"></i>
+                            <strong>Best Model:</strong> <span id="best-model">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics Comparison -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Performance Metrics Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="metricsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- F1-Score and ROC AUC Comparison -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> F1-Score Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="f1Chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> ROC AUC Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="rocChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Results Tables -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table"></i> Default Model Results
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Accuracy</th>
+                                <th>ROC AUC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="defaultModelTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table"></i> Tuned Model Results
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Accuracy</th>
+                                <th>ROC AUC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tunedModelTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Anomaly Score Distributions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Anomaly Score Distributions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+                <div class="mt-2 text-muted small">
+                    <strong>X-axis:</strong> Sample index (representing individual data points)<br>
+                    <strong>Y-axis:</strong> Normalized anomaly score (0-100 scale, higher values indicate greater anomaly likelihood)<br>
+                    <em>Note: Scores are normalized using 95th percentile to handle extreme outliers</em>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Characteristics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Model Characteristics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="modelAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="isoHeader">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#isoCollapse">
+                                <i class="fas fa-chart-line me-2"></i>Isolation Forest
+                            </button>
+                        </h2>
+                        <div id="isoCollapse" class="accordion-collapse collapse show" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="text-success">Pros:</h6>
+                                        <ul class="small">
+                                            <li>Fast training</li>
+                                            <li>Handles high-dimensional data</li>
+                                            <li>No parameter tuning</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Cons:</h6>
+                                        <ul class="small">
+                                            <li>Random nature</li>
+                                            <li>Limited interpretability</li>
+                                            <li>Sensitive to contamination</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-primary">Best For:</h6>
+                                        <p class="small">Large datasets, high-dimensional data</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="svmHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#svmCollapse">
+                                <i class="fas fa-network-wired me-2"></i>One-Class SVM
+                            </button>
+                        </h2>
+                        <div id="svmCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="text-success">Pros:</h6>
+                                        <ul class="small">
+                                            <li>Good generalization</li>
+                                            <li>Flexible kernels</li>
+                                            <li>Theoretical foundation</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Cons:</h6>
+                                        <ul class="small">
+                                            <li>Sensitive to parameters</li>
+                                            <li>Computational cost</li>
+                                            <li>Memory intensive</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-primary">Best For:</h6>
+                                        <p class="small">Medium datasets, non-linear patterns</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="autoHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#autoCollapse">
+                                <i class="fas fa-brain me-2"></i>Autoencoder
+                            </button>
+                        </h2>
+                        <div id="autoCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="text-success">Pros:</h6>
+                                        <ul class="small">
+                                            <li>Excellent feature learning</li>
+                                            <li>Handles complex patterns</li>
+                                            <li>State-of-the-art performance</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Cons:</h6>
+                                        <ul class="small">
+                                            <li>High computational cost</li>
+                                            <li>Requires tuning</li>
+                                            <li>Black box</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-primary">Best For:</h6>
+                                        <p class="small">Complex patterns, deep learning applications</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Result Type Toggle -->
+<div class="row mb-3">
+    <div class="col-12 text-end">
+        <div class="btn-group" role="group" aria-label="Result Type Toggle">
+            <button id="defaultBtn" type="button" class="btn btn-outline-primary active">Default Results</button>
+            <button id="hyperBtn" type="button" class="btn btn-outline-secondary">Hyperparameter Results</button>
+        </div>
+        <span id="resultTypeLabel" class="ms-3 text-muted">Showing: <strong>Default</strong></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global variables for chart instances
+let metricsChart = null;
+let f1Chart = null;
+let rocChart = null;
+let distributionChart = null;
+let currentResultType = 'default';
+
+// Global variables for model results data - will be populated from server
+let defaultResults = {};
+let tunedResults = {};
+
+function updateModelComparison() {
+    fetch(`/api/model_results?type=${currentResultType}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.log('No model data available');
+            return;
+        }
+        updateMetricsChart(data);
+        updateF1Chart(data);
+        updateRocChart(data);
+        updateModelTables(data);
+        updateDistributionChart();
+    })
+    .catch(error => {
+        console.log('Error fetching model data:', error);
+    });
+}
+
+function updateMetricsChart(data) {
+    const ctx = document.getElementById('metricsChart').getContext('2d');
+    
+    if (metricsChart) {
+        metricsChart.destroy();
+    }
+    
+    if (data.error) {
+        // Show placeholder chart
+        metricsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    label: 'No Data Available',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1
+                    }
+                }
+            }
+        });
+        return;
+    }
+    
+    const models = Object.keys(data);
+    const metrics = ['precision', 'recall', 'f1', 'accuracy', 'roc_auc'];
+    const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
+    
+    metricsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: metrics.map((metric, index) => ({
+                label: metric.toUpperCase(),
+                data: models.map(model => data[model][metric] || 0),
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length],
+                borderWidth: 1
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+}
+
+function updateF1Chart(data) {
+    const ctx = document.getElementById('f1Chart').getContext('2d');
+    
+    if (f1Chart) {
+        f1Chart.destroy();
+    }
+    
+    const models = Object.keys(data);
+    const f1Scores = models.map(model => data[model].f1 || 0);
+    const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#38f9d7'];
+    
+    f1Chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: [{
+                data: f1Scores,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateRocChart(data) {
+    const ctx = document.getElementById('rocChart').getContext('2d');
+    
+    if (rocChart) {
+        rocChart.destroy();
+    }
+    
+    const models = Object.keys(data);
+    const rocScores = models.map(model => data[model].roc_auc || 0);
+    const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#38f9d7'];
+    
+    rocChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: [{
+                label: 'ROC AUC',
+                data: rocScores,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+}
+
+function updateModelTables(data) {
+    // Update the appropriate table based on current result type
+    if (currentResultType === 'default') {
+        renderModelTable('defaultModelTable', data);
+    } else {
+        renderModelTable('tunedModelTable', data);
+    }
+}
+
+function updateDistributionChart() {
+    fetch(`/api/anomaly_scores?type=${currentResultType}`)
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('distributionChart').getContext('2d');
+        
+        if (distributionChart) {
+            distributionChart.destroy();
+        }
+        
+        const models = Object.keys(data);
+        // Find the maximum length among all model score arrays
+        const maxLen = Math.max(...models.map(model => data[model].length));
+        const labels = Array.from({length: maxLen}, (_, i) => i + 1);
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#38f9d7'];
+        
+        distributionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: models.map((model, index) => ({
+                    label: model.replace('_', ' ').toUpperCase(),
+                    data: data[model],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 2,
+                    pointHoverRadius: 4
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: `Sample index (1 to ${maxLen})`
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Normalized Anomaly Score (0-100)'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    });
+}
+
+function safeFixed(val) {
+    if (val === undefined || val === null || isNaN(val)) return "0.0000";
+    return Number(val).toFixed(4);
+}
+
+function renderModelTable(tableId, results) {
+    const tbody = document.getElementById(tableId);
+    tbody.innerHTML = '';
+    const metrics = ['precision', 'recall', 'f1', 'accuracy', 'roc_auc'];
+    for (const model in results) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${model.replace('_', ' ').toUpperCase()}</strong></td>
+            <td>${safeFixed(results[model]['precision'])}</td>
+            <td>${safeFixed(results[model]['recall'])}</td>
+            <td>${safeFixed(results[model]['f1'])}</td>
+            <td>${safeFixed(results[model]['accuracy'])}</td>
+            <td>${safeFixed(results[model]['roc_auc'])}</td>
+        `;
+        tbody.appendChild(row);
+    }
+}
+
+// Model training and utility functions
+function runModels() {
+    showLoading();
+    
+    console.log('Running models with reproducible results (random_state=42)...');
+    
+    fetch('/run_models', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        
+        if (data.status === 'success') {
+            showToast('Models trained successfully!', 'success');
+            updateDashboard(data);
+        } else {
+            showToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showToast('Error running models: ' + error.message, 'danger');
+    });
+}
+
+function updateDashboard(data) {
+    // Update status cards
+    document.getElementById('iso-status').textContent = 'Completed';
+    document.getElementById('svm-status').textContent = 'Completed';
+    document.getElementById('auto-status').textContent = 'Completed';
+    document.getElementById('rf-status').textContent = 'Completed';
+    document.getElementById('xgb-status').textContent = 'Completed';
+    document.getElementById('deep-auto-status').textContent = 'Completed';
+    
+    // Update best model - try comparison first, then fallback to recommendations
+    console.log('🔍 Updating best model with data:', data);
+    if (data.comparison && data.comparison.recommendations && data.comparison.recommendations.best_overall) {
+        document.getElementById('best-model').textContent = 
+            data.comparison.recommendations.best_overall.replace('_', ' ').toUpperCase();
+        console.log('✅ Best model updated from comparison:', data.comparison.recommendations.best_overall.replace('_', ' ').toUpperCase());
+    } else if (data.recommendations && data.recommendations.best_overall) {
+        document.getElementById('best-model').textContent = 
+            data.recommendations.best_overall.replace('_', ' ').toUpperCase();
+        console.log('✅ Best model updated from recommendations:', data.recommendations.best_overall.replace('_', ' ').toUpperCase());
+    } else {
+        console.log('⚠️ No best model found in data');
+    }
+    
+    // Update charts
+    updateModelComparison();
+}
+
+function tuneHyperparameters() {
+    if (confirm('This will run comprehensive hyperparameter tuning for all models. This may take several minutes. Continue?')) {
+        showLoading();
+        
+        fetch('/tune_hyperparameters', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.status === 'success') {
+                showToast('Hyperparameter tuning completed successfully!', 'success');
+                
+                // Update best model if available - try comparison first, then fallback to recommendations
+                if (data.comparison && data.comparison.recommendations && data.comparison.recommendations.best_overall) {
+                    document.getElementById('best-model').textContent = 
+                        data.comparison.recommendations.best_overall.replace('_', ' ').toUpperCase();
+                } else if (data.recommendations && data.recommendations.best_overall) {
+                    document.getElementById('best-model').textContent = 
+                        data.recommendations.best_overall.replace('_', ' ').toUpperCase();
+                }
+                
+                // Update both default and tuned results
+                updateModelComparison();
+                
+                // Specifically update the tuned results table
+                console.log('Updating tuned results table after hyperparameter tuning...');
+                
+                // Add a small delay to ensure backend has saved results
+                setTimeout(() => {
+                    fetch('/api/model_results?type=hyperparam')
+                    .then(response => response.json())
+                    .then(tunedData => {
+                        console.log('Tuned results received:', tunedData);
+                        if (!tunedData.error && Object.keys(tunedData).length > 0) {
+                            console.log('Rendering tuned model table with data:', tunedData);
+                            renderModelTable('tunedModelTable', tunedData);
+                        } else {
+                            console.log('No tuned results available or error:', tunedData);
+                            document.getElementById('tunedModelTable').innerHTML = 
+                                '<tr><td colspan="7" class="text-center text-muted">No hyperparameter tuning results available. Run hyperparameter tuning first.</td></tr>';
+                        }
+                    })
+                    .catch(error => {
+                        console.log('Error fetching tuned results:', error);
+                        document.getElementById('tunedModelTable').innerHTML = 
+                            '<tr><td colspan="7" class="text-center text-danger">Error loading hyperparameter results</td></tr>';
+                    });
+                }, 1000); // 1 second delay
+            } else {
+                showToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('Error in hyperparameter tuning: ' + error.message, 'danger');
+        });
+    }
+}
+
+function forceRefresh() {
+    console.log('Force refreshing page...');
+    // Clear browser cache
+    if (typeof(Storage) !== "undefined") {
+        localStorage.clear();
+        sessionStorage.clear();
+    }
+    // Force reload with cache busting
+    window.location.reload(true);
+}
+
+
+
+function restoreDashboardState() {
+    console.log('Restoring dashboard state...');
+    
+    // Debug: Check current state
+    fetch('/api/debug_state')
+    .then(response => response.json())
+    .then(debugData => {
+        console.log('Debug state:', debugData);
+    })
+    .catch(error => {
+        console.log('Error fetching debug state:', error);
+    });
+    
+    // Fetch best model information specifically
+    fetch('/api/best_model')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Best model data received:', data);
+        if (!data.error && data.best_model && data.best_model !== 'No model selected') {
+            // Restore best model
+            document.getElementById('best-model').textContent = 
+                data.best_model.replace('_', ' ').toUpperCase();
+            console.log('✅ Best model updated:', data.best_model.replace('_', ' ').toUpperCase());
+        } else {
+            console.log('⚠️ No best model found or error:', data);
+        }
+    })
+    .catch(error => {
+        console.log('Error fetching best model data:', error);
+    });
+    
+    // Fetch comparison data to restore status cards
+    fetch('/api/comparison_data')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Comparison data received:', data);
+        if (!data.error && data.recommendations) {
+            // Restore model status cards if models are available
+            fetch('/api/model_results?type=default')
+            .then(response => response.json())
+            .then(modelData => {
+                if (!modelData.error && Object.keys(modelData).length > 0) {
+                    // Models are available, update status cards
+                    document.getElementById('iso-status').textContent = 'Completed';
+                    document.getElementById('svm-status').textContent = 'Completed';
+                    document.getElementById('auto-status').textContent = 'Completed';
+                    document.getElementById('rf-status').textContent = 'Completed';
+                    document.getElementById('xgb-status').textContent = 'Completed';
+                    document.getElementById('deep-auto-status').textContent = 'Completed';
+                }
+            })
+            .catch(error => {
+                console.log('Error checking model availability:', error);
+            });
+        } else {
+            console.log('No comparison data available');
+        }
+    })
+    .catch(error => {
+        console.log('Error fetching comparison data:', error);
+    });
+}
+
+function clearResults() {
+    if (confirm('Are you sure you want to clear all model results? This will reset the dashboard.')) {
+        fetch('/clear_results', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast('Results cleared successfully!', 'success');
+                // Reset dashboard
+                document.getElementById('iso-status').textContent = 'Not Run';
+                document.getElementById('svm-status').textContent = 'Not Run';
+                document.getElementById('auto-status').textContent = 'Not Run';
+                document.getElementById('rf-status').textContent = 'Not Run';
+                document.getElementById('xgb-status').textContent = 'Not Run';
+                document.getElementById('deep-auto-status').textContent = 'Not Run';
+                document.getElementById('best-model').textContent = '-';
+                
+                // Clear charts
+                if (metricsChart) metricsChart.destroy();
+                if (f1Chart) f1Chart.destroy();
+                if (rocChart) rocChart.destroy();
+                if (distributionChart) distributionChart.destroy();
+                
+                // Clear tables
+                document.getElementById('defaultModelTable').innerHTML = '';
+                document.getElementById('tunedModelTable').innerHTML = '';
+            } else {
+                showToast('Error clearing results: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showToast('Error clearing results: ' + error.message, 'danger');
+        });
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard initializing...');
+    
+    // Restore dashboard state (best model, status cards)
+    restoreDashboardState();
+    
+    // Initialize charts and tables
+    updateModelComparison();
+    
+    // Additional check for best model after a short delay to ensure data is loaded
+    setTimeout(() => {
+        fetch('/api/best_model')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.best_model && data.best_model !== 'No model selected') {
+                const currentBestModel = document.getElementById('best-model').textContent;
+                if (currentBestModel === '-' || currentBestModel === '') {
+                    document.getElementById('best-model').textContent = 
+                        data.best_model.replace('_', ' ').toUpperCase();
+                }
+            }
+        })
+        .catch(error => {
+            console.log('Error in delayed best model check:', error);
+        });
+    }, 1000); // 1 second delay
+    
+    // Also populate the other table type
+    fetch('/api/model_results?type=hyperparam')
+    .then(response => response.json())
+    .then(data => {
+        if (!data.error) {
+            renderModelTable('tunedModelTable', data);
+        }
+    })
+    .catch(error => {
+        console.log('Error fetching hyperparameter results:', error);
+    });
+    
+    // Add toggle button functionality
+    document.getElementById('defaultBtn').addEventListener('click', function() {
+        currentResultType = 'default';
+        document.getElementById('defaultBtn').classList.add('active');
+        document.getElementById('hyperBtn').classList.remove('active');
+        document.getElementById('resultTypeLabel').innerHTML = 'Showing: <strong>Default</strong>';
+        updateModelComparison();
+    });
+    
+    document.getElementById('hyperBtn').addEventListener('click', function() {
+        currentResultType = 'hyperparam';
+        document.getElementById('hyperBtn').classList.add('active');
+        document.getElementById('defaultBtn').classList.remove('active');
+        document.getElementById('resultTypeLabel').innerHTML = 'Showing: <strong>Hyperparameter Tuned</strong>';
+        updateModelComparison();
+    });
+});
+</script>
+{% endblock %} 

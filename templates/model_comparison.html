@@ -1,0 +1,731 @@
+{% extends "base.html" %}
+
+{% block title %}Model Comparison - Financial Anomaly Detection{% endblock %}
+{% block page_title %}Model Comparison{% endblock %}
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="v2.0-accuracy-fix">
+
+{% block content %}
+{% if has_data %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Performance Metrics Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="metricsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Performance Metrics Comparison
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="py-5">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Model Data Available</h5>
+                    <p class="text-muted">Run the models first to see performance comparisons.</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Run Models
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if has_data %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> F1-Score Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="f1Chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> ROC AUC Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="rocChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> F1-Score Comparison
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="py-4">
+                    <i class="fas fa-chart-pie fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No data available</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> ROC AUC Comparison
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="py-4">
+                    <i class="fas fa-chart-line fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No data available</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table"></i> Default Model Results
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if has_data %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Accuracy</th>
+                                <th>ROC AUC</th>
+                                <th>PR AUC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="defaultModelTable">
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tuned Results Table -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table"></i> Tuned Model Results
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if has_data %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Accuracy</th>
+                                <th>ROC AUC</th>
+                                <th>PR AUC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tunedModelTable">
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Model Characteristics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="modelAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="isoHeader">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#isoCollapse">
+                                Isolation Forest
+                            </button>
+                        </h2>
+                        <div id="isoCollapse" class="accordion-collapse collapse show" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>Fast training</li>
+                                    <li>Handles high-dimensional data</li>
+                                    <li>No parameter tuning</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>Random nature</li>
+                                    <li>Limited interpretability</li>
+                                    <li>Sensitive to contamination</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Large datasets, high-dimensional data</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="svmHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#svmCollapse">
+                                One-Class SVM
+                            </button>
+                        </h2>
+                        <div id="svmCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>Good generalization</li>
+                                    <li>Flexible kernels</li>
+                                    <li>Theoretical foundation</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>Sensitive to parameters</li>
+                                    <li>Computational cost</li>
+                                    <li>Memory intensive</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Medium datasets, non-linear patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="autoHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#autoCollapse">
+                                Autoencoder
+                            </button>
+                        </h2>
+                        <div id="autoCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>Excellent feature learning</li>
+                                    <li>Handles complex patterns</li>
+                                    <li>State-of-the-art performance</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>High computational cost</li>
+                                    <li>Requires tuning</li>
+                                    <li>Black box</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Complex patterns, deep learning applications</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="deepAutoHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#deepAutoCollapse">
+                                Deep Autoencoder
+                            </button>
+                        </h2>
+                        <div id="deepAutoCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>Captures complex, hierarchical patterns</li>
+                                    <li>Powerful feature learning</li>
+                                    <li>Flexible architecture</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>High computational cost</li>
+                                    <li>Requires careful tuning</li>
+                                    <li>Black box</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Complex, hierarchical patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="xgbHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#xgbCollapse">
+                                XGBoost
+                            </button>
+                        </h2>
+                        <div id="xgbCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>High predictive power</li>
+                                    <li>Handles missing data</li>
+                                    <li>Feature importance</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>Can overfit</li>
+                                    <li>Requires tuning</li>
+                                    <li>Less interpretable</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Tabular data, high performance</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="rfHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#rfCollapse">
+                                Random Forest
+                            </button>
+                        </h2>
+                        <div id="rfCollapse" class="accordion-collapse collapse" data-bs-parent="#modelAccordion">
+                            <div class="accordion-body">
+                                <h6>Pros:</h6>
+                                <ul>
+                                    <li>Robust to overfitting</li>
+                                    <li>Feature importance</li>
+                                    <li>Handles non-linear data</li>
+                                </ul>
+                                <h6>Cons:</h6>
+                                <ul>
+                                    <li>Slower for large datasets</li>
+                                    <li>Less interpretable than single trees</li>
+                                    <li>Requires tuning</li>
+                                </ul>
+                                <h6>Best For:</h6>
+                                <p>Tabular data, interpretability</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Anomaly Score Distributions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if has_data %}
+                <div class="chart-container">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+                <!-- Axis explanation -->
+                <div class="mt-2 text-muted distribution-axis-explain" style="font-size: 0.95em;">
+                    <strong>X-axis:</strong> Sample index (dynamic range, representing individual data points)<br>
+                    <strong>Y-axis:</strong> Anomaly score assigned by each model (higher values indicate greater anomaly likelihood)
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-line fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No anomaly score data available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add toggle for Default vs Hyperparameter results -->
+<div class="row mb-3">
+    <div class="col-12 text-end">
+        <div class="btn-group me-3" role="group" aria-label="Result Type Toggle">
+            <button id="defaultBtn" type="button" class="btn btn-outline-primary active">Default Results</button>
+            <button id="hyperBtn" type="button" class="btn btn-outline-secondary">Hyperparameter Results</button>
+        </div>
+        <span id="resultTypeLabel" class="me-3 text-muted">Showing: <strong>Default</strong></span>
+        <button id="refreshBtn" type="button" class="btn btn-outline-success" onclick="forceRefresh()">Force Refresh</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables for chart instances
+let metricsChart = null;
+let f1Chart = null;
+let rocChart = null;
+let distributionChart = null;
+let currentResultType = 'default';
+
+// Global variables for model results data - will be populated from server
+let defaultResults = {};
+let tunedResults = {};
+
+function updateModelComparison() {
+    // Add cache-busting parameter
+    const timestamp = new Date().getTime();
+    fetch(`/api/model_results?type=${currentResultType}&t=${timestamp}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error || Object.keys(data).length === 0) {
+            console.log(`No ${currentResultType} model data available`);
+            // Show appropriate message based on result type
+            if (currentResultType === 'hyperparam') {
+                document.getElementById('resultTypeLabel').innerHTML = 'Showing: <strong>Hyperparameter Tuned</strong> (No data available)';
+            }
+            return;
+        }
+        console.log(`${currentResultType} results loaded:`, data);
+        updateMetricsChart(data);
+        updateF1Chart(data);
+        updateRocChart(data);
+        updateModelTables(data);
+        updateDistributionChart();
+    })
+    .catch(error => {
+        console.log('Error fetching model data:', error);
+    });
+}
+
+function updateMetricsChart(data) {
+    const ctx = document.getElementById('metricsChart').getContext('2d');
+    
+    if (metricsChart) {
+        metricsChart.destroy();
+    }
+    
+    if (data.error) {
+        // Show placeholder chart
+        metricsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['No Data'],
+                datasets: [{
+                    label: 'No Data Available',
+                    data: [0],
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1
+                    }
+                }
+            }
+        });
+        return;
+    }
+    
+    const models = Object.keys(data);
+    const metrics = ['precision', 'recall', 'f1', 'accuracy', 'roc_auc', 'pr_auc'];
+    const colors = ['#667eea', '#764ba2', '#f093fb'];
+    
+    metricsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: metrics.map((metric, index) => ({
+                label: metric.toUpperCase(),
+                data: models.map(model => data[model][metric] || 0),
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length],
+                borderWidth: 1
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+}
+
+function updateF1Chart(data) {
+    const ctx = document.getElementById('f1Chart').getContext('2d');
+    
+    if (f1Chart) {
+        f1Chart.destroy();
+    }
+    
+    const models = Object.keys(data);
+    const f1Scores = models.map(model => data[model].f1 || 0);
+    const colors = ['#667eea', '#764ba2', '#f093fb'];
+    
+    f1Chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: [{
+                data: f1Scores,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function updateRocChart(data) {
+    const ctx = document.getElementById('rocChart').getContext('2d');
+    
+    if (rocChart) {
+        rocChart.destroy();
+    }
+    
+    const models = Object.keys(data);
+    const rocScores = models.map(model => data[model].roc_auc || 0);
+    const colors = ['#667eea', '#764ba2', '#f093fb'];
+    
+    rocChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: models.map(m => m.replace('_', ' ').toUpperCase()),
+            datasets: [{
+                label: 'ROC AUC',
+                data: rocScores,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+}
+
+function updateModelTables(data) {
+    // Update the appropriate table based on current result type
+    if (currentResultType === 'default') {
+        renderModelTable('defaultModelTable', data);
+    } else {
+        renderModelTable('tunedModelTable', data);
+    }
+}
+
+function updateDistributionChart() {
+    fetch(`/api/anomaly_scores?type=${currentResultType}`)
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('distributionChart').getContext('2d');
+        
+        if (distributionChart) {
+            distributionChart.destroy();
+        }
+        
+        const models = Object.keys(data);
+        // Find the maximum length among all model score arrays
+        const maxLen = Math.max(...models.map(model => data[model].length));
+        const labels = Array.from({length: maxLen}, (_, i) => i + 1);
+        const colors = ['#667eea', '#764ba2', '#f093fb'];
+        
+        distributionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: models.map((model, index) => ({
+                    label: model.replace('_', ' ').toUpperCase(),
+                    data: data[model],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    fill: false,
+                    tension: 0.4
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: `Sample index (1 to ${maxLen})`
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Anomaly score'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update axis explanation text
+        const axisExplain = document.querySelector('.distribution-axis-explain');
+        if (axisExplain) {
+            axisExplain.innerHTML = `<strong>X-axis:</strong> Sample index (1 to ${maxLen}, representing individual data points)<br>
+            <strong>Y-axis:</strong> Anomaly score assigned by each model (higher values indicate greater anomaly likelihood)`;
+        }
+    });
+}
+
+function safeFixed(val) {
+    if (val === undefined || val === null || isNaN(val)) return "0.0000";
+    return Number(val).toFixed(4);
+}
+
+function renderModelTable(tableId, results) {
+    const tbody = document.getElementById(tableId);
+    tbody.innerHTML = '';
+    const metrics = ['precision', 'recall', 'f1', 'accuracy', 'roc_auc', 'pr_auc'];
+    
+    // Debug: Log the results to see what's available
+    console.log(`Rendering table ${tableId} with results:`, results);
+    
+    for (const model in results) {
+        // Debug: Log each model's data
+        console.log(`Model ${model} data:`, results[model]);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${model.replace('_', ' ').toUpperCase()}</td>
+            <td>${safeFixed(results[model]['precision'])}</td>
+            <td>${safeFixed(results[model]['recall'])}</td>
+            <td>${safeFixed(results[model]['f1'])}</td>
+            <td>${safeFixed(results[model]['accuracy'])}</td>
+            <td>${safeFixed(results[model]['roc_auc'])}</td>
+            <td>${safeFixed(results[model]['pr_auc'])}</td>
+        `;
+        tbody.appendChild(row);
+    }
+}
+
+
+
+function forceRefresh() {
+    console.log('Force refreshing data...');
+    // Clear any cached data
+    if (typeof(Storage) !== "undefined") {
+        localStorage.clear();
+        sessionStorage.clear();
+    }
+    // Force reload the page
+    location.reload(true);
+}
+
+// Toggle button event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts and tables with default results
+    updateModelComparison();
+    
+    // Pre-fetch hyperparameter results to populate the tuned table
+    const timestamp = new Date().getTime();
+    fetch(`/api/model_results?type=hyperparam&t=${timestamp}`)
+    .then(response => response.json())
+    .then(data => {
+        if (!data.error && Object.keys(data).length > 0) {
+            console.log('Hyperparameter results loaded:', data);
+            renderModelTable('tunedModelTable', data);
+        } else {
+            console.log('No hyperparameter results available');
+            // Show placeholder in tuned table
+            document.getElementById('tunedModelTable').innerHTML = 
+                '<tr><td colspan="7" class="text-center text-muted">No hyperparameter tuning results available. Run hyperparameter tuning first.</td></tr>';
+        }
+    })
+    .catch(error => {
+        console.log('Error fetching hyperparameter results:', error);
+        // Show error in tuned table
+        document.getElementById('tunedModelTable').innerHTML = 
+            '<tr><td colspan="7" class="text-center text-danger">Error loading hyperparameter results</td></tr>';
+    });
+    
+    // Add toggle button functionality
+    document.getElementById('defaultBtn').addEventListener('click', function() {
+        currentResultType = 'default';
+        document.getElementById('defaultBtn').classList.add('active');
+        document.getElementById('hyperBtn').classList.remove('active');
+        document.getElementById('resultTypeLabel').innerHTML = 'Showing: <strong>Default</strong>';
+        updateModelComparison();
+    });
+    
+    document.getElementById('hyperBtn').addEventListener('click', function() {
+        currentResultType = 'hyperparam';
+        document.getElementById('hyperBtn').classList.add('active');
+        document.getElementById('defaultBtn').classList.remove('active');
+        document.getElementById('resultTypeLabel').innerHTML = 'Showing: <strong>Hyperparameter Tuned</strong>';
+        updateModelComparison();
+    });
+});
+</script>
+{% endblock %}

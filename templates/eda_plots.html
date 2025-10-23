@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}EDA Plots - Financial Anomaly Detection{% endblock %}
+{% block page_title %}EDA Plots{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Exploratory Data Analysis (EDA) Visualizations
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if eda_plots.missing_heatmap %}
+                <div class="mb-4">
+                    <h6>Missing Value Heatmap</h6>
+                    <img src="/{{ eda_plots.missing_heatmap }}" alt="Missing Value Heatmap" class="img-fluid border rounded">
+                </div>
+                {% endif %}
+                {% if eda_plots.feature_histograms %}
+                <div class="mb-4">
+                    <h6>Feature Histograms</h6>
+                    <div id="histogramCarouselEda" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for img_path in eda_plots.feature_histograms %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <img src="/{{ img_path }}" class="d-block w-100 img-fluid border rounded" alt="Feature Histogram">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#histogramCarouselEda" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#histogramCarouselEda" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+                {% if eda_plots.feature_boxplots %}
+                <div class="mb-4">
+                    <h6>Feature Boxplots</h6>
+                    <div id="boxplotCarouselEda" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for img_path in eda_plots.feature_boxplots %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <img src="/{{ img_path }}" class="d-block w-100 img-fluid border rounded" alt="Feature Boxplot">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#boxplotCarouselEda" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#boxplotCarouselEda" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+                {% if eda_plots.correlation_matrix %}
+                <div class="mb-4">
+                    <h6>Correlation Matrix</h6>
+                    <img src="/{{ eda_plots.correlation_matrix }}" alt="Correlation Matrix" class="img-fluid border rounded">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

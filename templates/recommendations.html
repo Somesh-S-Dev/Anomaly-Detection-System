@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations - Financial Anomaly Detection{% endblock %}
+{% block page_title %}Recommendations{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Executive Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Based on our comprehensive analysis of anomaly detection models for financial fraud detection, 
+                    we provide the following recommendations for policymakers, financial institutions, and regulators.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-landmark"></i> Policy Recommendations
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recommendations.policymakers %}
+                    {% for rec in recommendations.policymakers %}
+                    <div class="mb-4">
+                        <h6>{{ rec.category }}</h6>
+                        <p><strong>{{ rec.recommendation }}</strong></p>
+                        <p><em>Rationale:</em> {{ rec.rationale }}</p>
+                        <p><em>Implementation:</em> {{ rec.implementation }}</p>
+                        <span class="badge bg-primary">{{ rec.timeline }}</span>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No policy recommendations available. Please run models first.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-university"></i> Financial Institution Recommendations
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recommendations.financial_institutions %}
+                    {% for rec in recommendations.financial_institutions %}
+                    <div class="mb-4">
+                        <h6>{{ rec.category }}</h6>
+                        <p><strong>{{ rec.recommendation }}</strong></p>
+                        <p><em>Rationale:</em> {{ rec.rationale }}</p>
+                        <p><em>Implementation:</em> {{ rec.implementation }}</p>
+                        <span class="badge bg-success">{{ rec.timeline }}</span>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No financial institution recommendations available. Please run models first.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-gavel"></i> Regulatory Recommendations
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recommendations.regulators %}
+                    {% for rec in recommendations.regulators %}
+                    <div class="mb-4">
+                        <h6>{{ rec.category }}</h6>
+                        <p><strong>{{ rec.recommendation }}</strong></p>
+                        <p><em>Rationale:</em> {{ rec.rationale }}</p>
+                        <p><em>Implementation:</em> {{ rec.implementation }}</p>
+                        <span class="badge bg-warning">{{ rec.timeline }}</span>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No regulatory recommendations available. Please run models first.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs"></i> Technology Implementation
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recommendations.technology_implementation %}
+                    {% for rec in recommendations.technology_implementation %}
+                    <div class="mb-4">
+                        <h6>{{ rec.category }}</h6>
+                        <p><strong>{{ rec.recommendation }}</strong></p>
+                        <p><em>Rationale:</em> {{ rec.rationale }}</p>
+                        <p><em>Implementation:</em> {{ rec.implementation }}</p>
+                        <span class="badge bg-info">{{ rec.timeline }}</span>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No technology implementation recommendations available. Please run models first.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Risk Assessment
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Overall Risk Level</h6>
+                    <span class="badge bg-{{ 'success' if recommendations.risk_assessment.overall_risk == 'Low' else 'warning' if recommendations.risk_assessment.overall_risk == 'Medium' else 'danger' if recommendations.risk_assessment.overall_risk == 'High' else 'secondary' }}">
+                        {{ recommendations.risk_assessment.overall_risk if recommendations.risk_assessment.overall_risk else 'Unknown' }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Average F1 Score</h6>
+                    <p>{{ "%.3f"|format(recommendations.risk_assessment.average_f1_score) if recommendations.risk_assessment.average_f1_score is not none else "N/A" }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Risk Factors</h6>
+                    <ul class="list-unstyled">
+                        {% if recommendations.risk_assessment.risk_factors %}
+                            {% for factor in recommendations.risk_assessment.risk_factors %}
+                            <li><i class="fas fa-exclamation-circle text-warning"></i> {{ factor }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li><i class="fas fa-info text-muted"></i> No risk factors data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Mitigation Strategies</h6>
+                    <ul class="list-unstyled">
+                        {% if recommendations.risk_assessment.mitigation_strategies %}
+                            {% for strategy in recommendations.risk_assessment.mitigation_strategies %}
+                            <li><i class="fas fa-shield-alt text-success"></i> {{ strategy }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li><i class="fas fa-info text-muted"></i> No mitigation strategies data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Cost-Benefit Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Return on Investment</h6>
+                    <span class="badge bg-{{ 'success' if recommendations.cost_benefit_analysis.roi != 'Unknown' else 'secondary' }}">{{ recommendations.cost_benefit_analysis.roi if recommendations.cost_benefit_analysis.roi else 'Unknown' }}</span>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Estimated Savings</h6>
+                    <p class="text-success">{{ recommendations.cost_benefit_analysis.estimated_savings if recommendations.cost_benefit_analysis.estimated_savings else 'N/A' }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Implementation Cost</h6>
+                    <p class="text-warning">{{ recommendations.cost_benefit_analysis.implementation_cost if recommendations.cost_benefit_analysis.implementation_cost else 'N/A' }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Benefits</h6>
+                    <ul class="list-unstyled">
+                        {% if recommendations.cost_benefit_analysis.benefits %}
+                            {% for benefit in recommendations.cost_benefit_analysis.benefits %}
+                            <li><i class="fas fa-check text-success"></i> {{ benefit }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li><i class="fas fa-info text-muted"></i> No benefits data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Costs</h6>
+                    <ul class="list-unstyled">
+                        {% if recommendations.cost_benefit_analysis.costs %}
+                            {% for cost in recommendations.cost_benefit_analysis.costs %}
+                            <li><i class="fas fa-dollar-sign text-warning"></i> {{ cost }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li><i class="fas fa-info text-muted"></i> No costs data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-flag"></i> Action Items
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-clock fa-3x text-primary mb-3"></i>
+                            <h6>Immediate (0-3 months)</h6>
+                            <ul class="list-unstyled">
+                                <li>• Implement basic fraud detection</li>
+                                <li>• Establish data quality protocols</li>
+                                <li>• Begin staff training</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-calendar fa-3x text-warning mb-3"></i>
+                            <h6>Short-term (3-12 months)</h6>
+                            <ul class="list-unstyled">
+                                <li>• Deploy advanced ML models</li>
+                                <li>• Implement real-time monitoring</li>
+                                <li>• Establish regulatory compliance</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-rocket fa-3x text-success mb-3"></i>
+                            <h6>Long-term (1+ years)</h6>
+                            <ul class="list-unstyled">
+                                <li>• Continuous model improvement</li>
+                                <li>• Cross-institution collaboration</li>
+                                <li>• Advanced AI integration</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

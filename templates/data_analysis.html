@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Data Analysis{% endblock %}
+{% block page_title %}Data Analysis{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Dataset Shape</h3>
+    <p>{{ summary.shape[0] }} rows × {{ summary.shape[1] }} columns</p>
+
+    <h4>Sample Data</h4>
+    <table class="table table-bordered table-sm">
+        <thead>
+            <tr>
+                {% for col in summary.columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary.sample_data %}
+                <tr>
+                    {% for col in summary.columns %}
+                        <td>{{ row[col] }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h4>Statistical Summary</h4>
+    {{ summary.describe | safe }}
+
+    <h3>Distribution of Loan/Investment Amount</h3>
+    <img src="/{{ summary.eda_images.loan_investment_amount }}" class="img-fluid mb-4" alt="Loan Investment Amount Distribution">
+
+    <h3>Categorical Feature Counts</h3>
+    <img src="/{{ summary.eda_images.categorical_counts }}" class="img-fluid mb-4" alt="Categorical Counts">
+
+    <h3>Correlation Matrix of Numerical Features</h3>
+    <img src="/{{ summary.eda_images.correlation_matrix }}" class="img-fluid mb-4" alt="Correlation Matrix">
+
+    <h3>Missing Value Heatmap</h3>
+    <img src="/{{ summary.eda_images.missing_heatmap }}" class="img-fluid mb-4" alt="Missing Value Heatmap">
+</div>
+{% endblock %}

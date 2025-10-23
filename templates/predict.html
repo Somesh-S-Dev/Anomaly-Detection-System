@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Anomalies - Financial Anomaly Detection{% endblock %}
+{% block page_title %}Predict Anomalies{% endblock %}
+
+{% block content %}
+<style>
+.prediction-table th {
+    background-color: #f8f9fa;
+    font-size: 0.9em;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.prediction-table td {
+    font-size: 0.85em;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.summary-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+</style>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search"></i> Predict Anomalies in New Transactions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if models_available %}
+                <div class="alert alert-success mb-3">
+                    <i class="fas fa-check-circle"></i> Models are trained and ready for prediction!
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-exclamation-triangle"></i> No trained models available. Please run models first.
+                    <br><small class="text-muted">Note: If you've already trained models on the dashboard, they may need to be reloaded. The system will automatically retrain them if needed.</small>
+                </div>
+                {% endif %}
+                
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Upload CSV File</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" {% if not models_available %}disabled{% endif %}>Predict</button>
+                </form>
+                {% if error %}
+                <div class="alert alert-danger mt-3">{{ error }}</div>
+                {% endif %}
+                {% if results %}
+                <div class="mt-4">
+                    <!-- Prediction Summary Alert -->
+                    {% if prediction_summary %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Prediction Summary:</strong> 
+                        {{ prediction_summary.successful_count }} models successful, 
+                        {{ prediction_summary.failed_count }} models failed.
+                        {% if prediction_summary.failed_models %}
+                        <br><small class="text-muted">Failed models: {{ prediction_summary.failed_models | join(', ') }}</small>
+                        {% endif %}
+                        <br><small class="text-muted">Total samples processed: {{ prediction_summary.total_samples }}</small>
+                        
+                        <!-- Feature Alignment Information -->
+                        {% if prediction_summary.feature_alignment %}
+                        <br><br>
+                        <strong>Feature Alignment:</strong>
+                        {% if prediction_summary.feature_alignment.aligned %}
+                        <span class="badge bg-success">Perfect Match</span>
+                        {% else %}
+                        <span class="badge bg-warning">Feature Mismatch Handled</span>
+                        <br><small class="text-muted">
+                            Expected: {{ prediction_summary.feature_alignment.expected_features }} features | 
+                            Actual: {{ prediction_summary.feature_alignment.actual_features }} features
+                            {% if prediction_summary.feature_alignment.actual_features < prediction_summary.feature_alignment.expected_features %}
+                            <br>→ Added {{ prediction_summary.feature_alignment.expected_features - prediction_summary.feature_alignment.actual_features }} missing features with zeros
+                            {% else %}
+                            <br>→ Removed {{ prediction_summary.feature_alignment.actual_features - prediction_summary.feature_alignment.expected_features }} extra features
+                            {% endif %}
+                        </small>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <h6>Prediction Results</h6>
+                    
+                    <!-- Summary Statistics -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Summary Statistics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for model in results.keys() %}
+                                        {% if results[model]['error'] is not defined %}
+                                        <div class="col-md-4 mb-2">
+                                            <div class="border rounded p-2 summary-card">
+                                                <strong>{{ model.replace('_', ' ').upper() }}</strong><br>
+                                                <small class="text-muted">
+                                                    Anomalies: {{ results[model]['prediction']|select|list|length }} / {{ results[model]['prediction']|length }}<br>
+                                                    Avg Score: {{ "%.4f"|format(results[model]['score']|sum / results[model]['score']|length) }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive" style="overflow-x: auto;">
+                                                    <table class="table table-bordered table-sm prediction-table" style="min-width: 900px;">
+                                <thead>
+                                    <tr>
+                                        {% for col in columns %}
+                                        <th>{{ col }}</th>
+                                        {% endfor %}
+                                        {% for model in results.keys() %}
+                                        <th>{{ model.replace('_', ' ').upper() }}<br><small>Prediction</small></th>
+                                        <th>{{ model.replace('_', ' ').upper() }}<br><small>Anomaly Score</small></th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                            <tbody>
+                                {% for i in range(data|length) %}
+                                <tr>
+                                    {% for val in data[i] %}
+                                    <td>{{ val }}</td>
+                                    {% endfor %}
+                                    {% for model in results.keys() %}
+                                    {% if results[model]['error'] is defined %}
+                                    <td colspan="2" class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {{ results[model]['error'] }}
+                                    </td>
+                                    {% else %}
+                                    <td>
+                                        {% if results[model]['prediction'][i] == 1 %}
+                                        <span class="badge bg-danger">Anomaly</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Normal</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ "%.4f"|format(results[model]['score'][i]) }}</td>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Download Results Button -->
+                <div class="mt-3">
+                    <button class="btn btn-outline-success btn-sm" onclick="downloadResults()">
+                        <i class="fas fa-download"></i> Download Results
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadResults() {
+    // Create CSV content from the results table
+    const table = document.querySelector('.prediction-table');
+    const rows = table.querySelectorAll('tr');
+    let csvContent = '';
+    
+    // Add headers
+    const headers = [];
+    rows[0].querySelectorAll('th').forEach(th => {
+        headers.push(th.textContent.replace(/\n/g, ' ').trim());
+    });
+    csvContent += headers.join(',') + '\n';
+    
+    // Add data rows
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        cells.forEach(cell => {
+            let cellText = cell.textContent.trim();
+            // Handle badges
+            const badge = cell.querySelector('.badge');
+            if (badge) {
+                cellText = badge.textContent.trim();
+            }
+            // Escape commas and quotes
+            if (cellText.includes(',') || cellText.includes('"')) {
+                cellText = '"' + cellText.replace(/"/g, '""') + '"';
+            }
+            rowData.push(cellText);
+        });
+        
+        csvContent += rowData.join(',') + '\n';
+    }
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'anomaly_predictions.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %} 
