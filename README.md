@@ -1,4 +1,4 @@
-# Financial Anomaly Detection System v7.0
+# Financial Anomaly Detection System
 
 A comprehensive anomaly detection system for financial fraud detection with both Flask web interface and enhanced terminal interface, implementing multiple machine learning models and providing detailed analysis and recommendations.
 
@@ -410,21 +410,3 @@ For questions or support:
 ---
 
 **Note**: This system is designed for research and educational purposes. For production use in financial institutions, additional security measures and regulatory compliance should be implemented.
-
-## 🔄 Version History
-
-### v7.0 (Current)
-- ✅ Enhanced terminal interface with detailed model results
-- ✅ Added Deep Autoencoder and XGBoost models
-- ✅ Advanced preprocessing with multiple resampling strategies
-- ✅ Hyperparameter tuning interface
-- ✅ Improved model comparison and visualization
-- ✅ Better error handling and user experience
-
-### Previous Versions
-- v6.0: Basic model implementation
-- v5.0: Web interface development
-- v4.0: Core ML algorithms
-- v3.0: Data preprocessing pipeline
-- v2.0: Initial framework setup
-- v1.0: Basic anomaly detection 
